@@ -105,16 +105,16 @@
                 }
             });
 
-            // Sync Quill content to hidden input on every change
+            // Sync Quill content to hidden input on every change - use getText() to avoid HTML tags
             quillProlog.on('text-change', function() {
-                document.getElementById('templatePrologInput').value = quillProlog.root.innerHTML;
+                document.getElementById('templatePrologInput').value = quillProlog.getText().trim();
             });
-            
+
             // Only sync to Livewire when editor loses focus (prevents form disappearing)
             quillProlog.root.addEventListener('blur', function() {
                 const wireId = document.querySelector('[wire\\:id]');
                 if (wireId) {
-                    Livewire.find(wireId.getAttribute('wire:id')).set('templateProlog', quillProlog.root.innerHTML);
+                    Livewire.find(wireId.getAttribute('wire:id')).set('templateProlog', quillProlog.getText().trim());
                 }
             });
         });

@@ -12,11 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('instansi', function (Blueprint $table) {
-            // Drop foreign key first if exists
-            $table->dropForeign(['dibuat_oleh']);
-            
-            // Drop columns
-            $table->dropColumn(['aktif', 'dibuat_oleh']);
+            // Drop foreign key and column if exists
+            if (Schema::hasColumn('instansi', 'dibuat_oleh')) {
+                $table->dropForeign(['dibuat_oleh']);
+                $table->dropColumn('dibuat_oleh');
+            }
+
+            // Drop aktif if exists
+            if (Schema::hasColumn('instansi', 'aktif')) {
+                $table->dropColumn('aktif');
+            }
         });
     }
 

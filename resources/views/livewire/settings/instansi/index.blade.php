@@ -72,8 +72,9 @@
                                 {{ $instansi->nama }}
                             </td>
                             <td class="px-6 py-4 text-slate-500 dark:text-slate-400 max-w-md">
-                                <div class="truncate" title="{{ $instansi->template_prolog }}">
-                                    {{ Str::limit($instansi->template_prolog, 80) }}
+                                @php $cleanTemplate = strip_tags(html_entity_decode($instansi->template_prolog ?? '')); @endphp
+                                <div class="truncate" title="{{ $cleanTemplate }}">
+                                    {{ Str::limit($cleanTemplate, 80) }}
                                 </div>
                             </td>
                             <td class="px-6 py-4">

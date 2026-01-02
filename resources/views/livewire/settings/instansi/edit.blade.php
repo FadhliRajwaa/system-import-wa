@@ -85,20 +85,20 @@
             }
         });
 
-        // Load initial content for edit
-        quillProlog.root.innerHTML = @js($templateProlog);
+        // Load initial content for edit - set as plain text
+        quillProlog.setText(@js($templateProlog));
 
         // Sync Quill content to Livewire on blur (not on every keystroke)
         // This prevents form from disappearing during typing
         quillProlog.on('text-change', function() {
-            document.getElementById('templatePrologInput').value = quillProlog.root.innerHTML;
+            document.getElementById('templatePrologInput').value = quillProlog.getText().trim();
         });
-        
+
         // Only sync to Livewire when editor loses focus (blur)
         quillProlog.root.addEventListener('blur', function() {
             const wireId = document.querySelector('[wire\\:id]');
             if (wireId) {
-                Livewire.find(wireId.getAttribute('wire:id')).set('templateProlog', quillProlog.root.innerHTML);
+                Livewire.find(wireId.getAttribute('wire:id')).set('templateProlog', quillProlog.getText().trim());
             }
         });
     });

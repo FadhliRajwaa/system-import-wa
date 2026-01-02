@@ -13,10 +13,15 @@ return new class extends Migration
     {
         Schema::table('paket', function (Blueprint $table) {
             // Drop foreign key first if exists
-            $table->dropForeign(['dibuat_oleh']);
-            
-            // Drop columns yang tidak diperlukan
-            $table->dropColumn(['deskripsi', 'aktif', 'dibuat_oleh']);
+            if (Schema::hasColumn('paket', 'dibuat_oleh')) {
+                $table->dropForeign(['dibuat_oleh']);
+                $table->dropColumn('dibuat_oleh');
+            }
+
+            // Drop deskripsi if exists
+            if (Schema::hasColumn('paket', 'deskripsi')) {
+                $table->dropColumn('deskripsi');
+            }
         });
     }
 
