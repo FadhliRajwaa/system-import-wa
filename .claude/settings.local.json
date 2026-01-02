@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "mcp__telegram-notify__notify_user_prompt",
+      "mcp__telegram-notify__notify_task_start",
+      "Bash(php artisan tinker:*)",
+      "Skill(superpowers:systematic-debugging)",
+      "mcp__plugin_laravel-boost_laravel-boost__application-info",
+      "mcp__plugin_laravel-boost_laravel-boost__last-error",
+      "mcp__plugin_laravel-boost_laravel-boost__browser-logs",
+      "mcp__plugin_laravel-boost_laravel-boost__read-log-entries",
+      "mcp__plugin_laravel-boost_laravel-boost__database-schema",
+      "mcp__plugin_laravel-boost_laravel-boost__list-routes",
+      "mcp__plugin_laravel-boost_laravel-boost__database-query",
+      "Skill(superpowers:using-superpowers)",
+      "Skill(superpowers:brainstorming)",
+      "mcp__plugin_laravel-boost_laravel-boost__tinker",
+      "Bash(curl:*)",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(php:*)",
+      "Bash(dir:*)",
+      "Bash(npm run build)",
+      "WebSearch",
+      "WebFetch(domain:saungwa.com)"
+    ]
+  }
+}

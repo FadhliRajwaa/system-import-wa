@@ -1,0 +1,97 @@
+@import "tailwindcss";
+@import "../../vendor/livewire/flux/dist/flux.css";
+
+/* Tailwind CSS v4: Enable class-based dark mode (using .dark class on html element) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source "../views";
+@source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
+@source "../../vendor/livewire/flux-pro/stubs/**/*.blade.php";
+@source "../../vendor/livewire/flux/stubs/**/*.blade.php";
+
+@theme {
+    --font-sans: 'Plus Jakarta Sans', 'Outfit', 'Inter', system-ui, sans-serif;
+
+    /* Modern Vivid Blue Brand */
+    --color-brand-50: #f0f5ff;
+    --color-brand-100: #e0ebff;
+    --color-brand-200: #c2d6ff;
+    --color-brand-300: #94b8ff;
+    --color-brand-400: #5c93ff;
+    --color-brand-500: #2e66f5;
+    --color-brand-600: #1a4bd6;
+    --color-brand-700: #143ba3;
+    --color-brand-800: #143185;
+    --color-brand-900: #152b69;
+    --color-brand-950: #0e1940;
+}
+
+@layer base {
+    body {
+        @apply bg-slate-50 text-slate-900 antialiased dark:bg-[#0B0F19] dark:text-white;
+        /* Performance: optimize font rendering */
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+}
+
+@layer components {
+    /* Optimization: Use simple opacity instead of heavy blur for glass effect */
+    .glass {
+        @apply bg-white/95 border border-slate-200 shadow-sm dark:bg-[#151b2b]/95 dark:border-white/5;
+    }
+
+    .glass-panel {
+        @apply bg-white border border-slate-200 shadow-sm dark:bg-[#111827] dark:border-white/5;
+    }
+
+    .glass-sidebar {
+        @apply bg-white border-r border-slate-200 dark:bg-[#0B0F19] dark:border-white/5;
+    }
+
+    /* Modern Inputs */
+    .input-modern {
+        @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium transition-colors duration-200 focus:border-brand-500 focus:bg-white focus:ring-1 focus:ring-brand-500/20 dark:border-slate-800 dark:bg-slate-900 dark:focus:border-brand-400;
+    }
+
+    /* Gradient Text */
+    .text-gradient {
+        @apply text-brand-600 dark:text-brand-400;
+    }
+    
+    .text-gradient-primary {
+         @apply text-brand-600 dark:text-brand-400;
+    }
+
+    /* Modern Card */
+    .modern-card {
+        @apply relative overflow-hidden rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5 transition-shadow duration-200 hover:shadow-md dark:bg-[#111827] dark:ring-white/5;
+    }
+}
+
+@layer utilities {
+    /* Scrollbar styling */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: rgba(148, 163, 184, 0.5);
+        border-radius: 3px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: rgba(100, 116, 139, 0.8);
+    }
+    
+    /* Performance utilities */
+    .content-visibility-auto {
+        content-visibility: auto;
+    }
+}
+
