@@ -113,12 +113,12 @@ class PesanWaService
             if ($response->successful()) {
                 $data = $response->json();
                 $providerId = $data['messages'][0]['id'] ?? 'meta_'.uniqid();
-                
+
                 $pesan->update([
-                    'status' => 'sent',
+                    'status' => 'success',
                     'waktu_kirim' => now(),
                 ]);
-                
+
                 $peserta->update([
                     'status_wa' => 'sent',
                     'waktu_kirim_wa' => now(),
@@ -132,15 +132,16 @@ class PesanWaService
 
         } catch (\Exception $e) {
             $pesan->update([
-                'status' => 'failed',
+                'status' => 'gagal',
                 'percobaan' => $pesan->percobaan + 1,
+                'error_terakhir' => $e->getMessage(),
             ]);
-            
+
             $peserta->update([
                 'status_wa' => 'failed',
                 'error_wa' => $e->getMessage()
             ]);
-            
+
             Log::error('WA API Send Error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
         }
@@ -185,7 +186,7 @@ class PesanWaService
                 // SaungWA returns message_status in response
                 if (isset($data['message_status']) && $data['message_status'] === 'Success') {
                     $pesan->update([
-                        'status' => 'sent',
+                        'status' => 'success',
                         'waktu_kirim' => now(),
                     ]);
 
@@ -206,8 +207,9 @@ class PesanWaService
 
         } catch (\Exception $e) {
             $pesan->update([
-                'status' => 'failed',
+                'status' => 'gagal',
                 'percobaan' => $pesan->percobaan + 1,
+                'error_terakhir' => $e->getMessage(),
             ]);
 
             $peserta->update([
