@@ -54,7 +54,7 @@
                     RIKKES<span class="text-gradient"> BERKALA</span>
                 </h1>
                 <p class="text-sm sm:text-base text-slate-500 dark:text-slate-400 max-w-md mx-auto">
-                    Kelola sistem import dan pengiriman pesan WhatsApp dengan mudah dan efisien
+                    ANGGOTA DAN ASN POLDA JAWA BARAT
                 </p>
             </div>
 
