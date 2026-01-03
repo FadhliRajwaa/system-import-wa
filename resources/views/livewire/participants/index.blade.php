@@ -295,8 +295,10 @@
                             <td class="px-4 py-3 text-center font-bold text-xs">
                                 <span class="px-2 py-0.5 rounded text-xs {{ $this->statusWaBadgeClass[$peserta->status_wa] ?? 'bg-slate-100 text-slate-800' }}">
                                     @switch($peserta->status_wa)
-                                        @case('success') Sukses @break
-                                        @case('belum_kirim') Belum Kirim @break
+                                        @case('sent') Terkirim @break
+                                        @case('failed') Gagal @break
+                                        @case('queued') Antrian @break
+                                        @case('not_sent') Belum @break
                                         @default Belum
                                     @endswitch
                                 </span>

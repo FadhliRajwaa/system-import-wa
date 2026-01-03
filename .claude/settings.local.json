@@ -23,7 +23,12 @@
       "Bash(dir:*)",
       "Bash(npm run build)",
       "WebSearch",
-      "WebFetch(domain:saungwa.com)"
+      "WebFetch(domain:saungwa.com)",
+      "Bash(del:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: SaungWA integration ENUM status mismatch\n\n- Add ''gagal'' status to pesan_wa ENUM \\(belum_kirim, success, gagal\\)\n- Update PesanWaService to use correct status values\n- Add webhook endpoint for SaungWA callbacks\n- Add saungwa log channel for debugging\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd: SaungWA webhook endpoint for receiving callbacks\n\n- Create /api/webhook/saungwa endpoint\n- Add SaungwaWebhookController to handle incoming webhooks\n- Register API routes in bootstrap/app.php\n- Add saungwa log channel for webhook debugging\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)"
     ]
   }
 }

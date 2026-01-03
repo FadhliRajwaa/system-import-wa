@@ -223,7 +223,7 @@ class Index extends Component
                 return false;
             }
             // Skip already sent
-            if ($peserta->status_wa === 'success') {
+            if ($peserta->status_wa === 'sent') {
                 return false;
             }
             return true;
@@ -371,7 +371,7 @@ class Index extends Component
             $eligible = Peserta::query()
                 ->when(!$user->isAdmin(), fn ($query) => $query->where('diupload_oleh', $user->id))
                 ->where('status_pdf', 'uploaded')
-                ->where('status_wa', '!=', 'success')
+                ->where('status_wa', '!=', 'sent')
                 ->whereNotNull('no_hp_wa')
                 ->get() // Fetch eligible records first
                 ->map(fn ($item) => $item->nrp_nip . '|' . $item->tanggal_periksa->format('Y-m-d'))
@@ -392,8 +392,10 @@ class Index extends Component
     public function getStatusWaBadgeClassProperty(): array
     {
         return [
-            'belum_kirim' => 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
-            'success' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+            'not_sent' => 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-200',
+            'sent' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+            'failed' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+            'queued' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
         ];
     }
 

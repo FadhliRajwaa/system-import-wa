@@ -95,17 +95,18 @@ class Index extends Component
 
     public function getTotalPesertaProperty(): int
     {
-        return $this->getFilteredPesertaQuery()->count();
+        // Show all peserta without paket filter for accurate total
+        return $this->getPesertaQuery()->count();
     }
 
     public function getSentWaProperty(): int
     {
-        return $this->getPesertaQuery()->where('status_wa', 'success')->count();
+        return $this->getPesertaQuery()->where('status_wa', 'sent')->count();
     }
 
     public function getNotSentWaProperty(): int
     {
-        return $this->getPesertaQuery()->where('status_wa', 'belum_kirim')->count();
+        return $this->getPesertaQuery()->where('status_wa', 'not_sent')->count();
     }
 
     public function getHasPdfProperty(): int
