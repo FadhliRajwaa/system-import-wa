@@ -10,6 +10,8 @@ class Package extends Model
 {
     use HasFactory;
 
+    protected $table = 'paket';
+
     protected $fillable = [
         'code',
         'name',

@@ -10,6 +10,8 @@ class WaMessage extends Model
 {
     use HasFactory;
 
+    protected $table = 'pesan_wa';
+
     protected $fillable = [
         'provider',
         'to_phone_e164',

@@ -12,6 +12,8 @@ class Participant extends Model
 {
     use HasFactory;
 
+    protected $table = 'peserta';
+
     protected $fillable = [
         'name',
         'rank',

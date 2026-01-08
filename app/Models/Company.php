@@ -10,6 +10,8 @@ class Company extends Model
 {
     use HasFactory;
 
+    protected $table = 'instansi';
+
     protected $fillable = [
         'code',
         'name',

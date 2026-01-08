@@ -11,6 +11,8 @@ class Upload extends Model
 {
     use HasFactory;
 
+    protected $table = 'unggahan';
+
     protected $fillable = [
         'type',
         'original_name',
