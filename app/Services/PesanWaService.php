@@ -10,6 +10,11 @@ use Illuminate\Support\Facades\Log;
 class PesanWaService
 {
     /**
+     * Maximum length for error messages stored in database
+     */
+    private const MAX_ERROR_LENGTH = 1000;
+
+    /**
      * Send WhatsApp message based on provider setting
      */
     public function sendNow(PesanWa $pesan, Peserta $peserta): array
@@ -131,22 +136,24 @@ class PesanWaService
             }
 
         } catch (\Exception $e) {
+            $errorMsg = $this->truncateError($e->getMessage());
+
             $pesan->update([
                 'status' => 'gagal',
                 'percobaan' => $pesan->percobaan + 1,
-                'error_terakhir' => $e->getMessage(),
+                'error_terakhir' => $errorMsg,
             ]);
 
             $peserta->update([
                 'status_wa' => 'failed',
-                'error_wa' => $e->getMessage()
+                'error_wa' => $errorMsg
             ]);
 
             Log::error('WA API Send Error: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
+            return ['success' => false, 'error' => $errorMsg];
         }
     }
-    
+
     /**
      * Twilio sending (placeholder for future)
      */
@@ -206,19 +213,45 @@ class PesanWaService
             }
 
         } catch (\Exception $e) {
+            $errorMsg = $this->truncateError($e->getMessage());
+
             $pesan->update([
                 'status' => 'gagal',
                 'percobaan' => $pesan->percobaan + 1,
-                'error_terakhir' => $e->getMessage(),
+                'error_terakhir' => $errorMsg,
             ]);
 
             $peserta->update([
                 'status_wa' => 'failed',
-                'error_wa' => $e->getMessage()
+                'error_wa' => $errorMsg
             ]);
 
             Log::error('SaungWA Send Error: ' . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
+            return ['success' => false, 'error' => $errorMsg];
         }
+    }
+
+    /**
+     * Truncate error message to prevent database overflow
+     * Also extracts meaningful error from HTML responses
+     */
+    protected function truncateError(string $error): string
+    {
+        // If error contains HTML (like SaungWA internal errors), extract the meaningful part
+        if (str_contains($error, '<!DOCTYPE html>') || str_contains($error, '<html')) {
+            // Try to extract the actual exception message
+            if (preg_match('/Exception:\s*([^<]+)/i', $error, $matches)) {
+                $error = 'SaungWA Internal Error: ' . trim($matches[1]);
+            } else {
+                $error = 'SaungWA Internal Server Error (service unavailable)';
+            }
+        }
+
+        // Truncate to max length
+        if (strlen($error) > self::MAX_ERROR_LENGTH) {
+            return substr($error, 0, self::MAX_ERROR_LENGTH - 3) . '...';
+        }
+
+        return $error;
     }
 }
