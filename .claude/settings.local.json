@@ -30,7 +30,9 @@
       "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd: SaungWA webhook endpoint for receiving callbacks\n\n- Create /api/webhook/saungwa endpoint\n- Add SaungwaWebhookController to handle incoming webhooks\n- Register API routes in bootstrap/app.php\n- Add saungwa log channel for webhook debugging\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git push:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: WA status update dan Dashboard real-time\n\nBug fixes:\n- Fix status_wa value mismatch \\(sent vs success\\)\n- Update Dashboard to show all peserta without paket filter\n- Update status badge classes untuk nilai ENUM yang benar\n- Update view labels untuk status WA\n\n🤖 Generated with [Claude Code]\\(https://claude.com/claude-code\\)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Add table names to models and simplify DatabaseSeeder\n\n- Add $table property to Package, Company, Participant, Upload, WaMessage models\n- Map English model names to Indonesian table names \\(paket, instansi, peserta, unggahan, pesan_wa\\)\n- Remove broken seeders that reference non-existent tables\n- Keep only AdminUserSeeder in DatabaseSeeder\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix: Add table names to models and simplify DatabaseSeeder\n\n- Add $table property to Package, Company, Participant, Upload, WaMessage models\n- Map English model names to Indonesian table names \\(paket, instansi, peserta, unggahan, pesan_wa\\)\n- Remove broken seeders that reference non-existent tables\n- Keep only AdminUserSeeder in DatabaseSeeder\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n\\)\")",
+      "mcp__plugin_laravel-boost_laravel-boost__list-available-env-vars",
+      "mcp__plugin_laravel-boost_laravel-boost__get-config"
     ]
   }
 }

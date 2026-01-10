@@ -36,7 +36,7 @@ return [
     ],
 
     'whatsapp' => [
-        'provider' => env('WA_PROVIDER', 'manual'),
+        'provider' => env('WA_PROVIDER', 'saungwa'),
         'phone_number_id' => env('WA_PHONE_NUMBER_ID'),
         'access_token' => env('WA_ACCESS_TOKEN'),
         'rate_limit_per_second' => (int) env('WA_RATE_LIMIT_PER_SECOND', 1),

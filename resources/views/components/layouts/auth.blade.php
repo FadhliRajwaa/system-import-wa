@@ -47,8 +47,8 @@
             <!-- Logo Section -->
             <div class="mb-8 text-center animate-fade-in-up">
                 <div class="inline-flex items-center justify-center mb-6 gap-3 sm:gap-4">
-                    <img src="{{ asset('logo-biddokkes-no-wm.png') }}" alt="Biddokkes" class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-lg" />
                     <img src="{{ asset('Logo-Jabar.png') }}" alt="Polda Jawa Barat" class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-lg" />
+                    <img src="{{ asset('logo-biddokkes-no-wm.png') }}" alt="Biddokkes" class="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-lg" />
                 </div>
                 <h1 class="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">
                     RIKKES<span class="text-gradient"> BERKALA</span>

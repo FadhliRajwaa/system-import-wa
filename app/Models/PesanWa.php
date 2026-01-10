@@ -18,6 +18,7 @@ class PesanWa extends Model
         'error_terakhir',
         'waktu_kirim',
         'nrp_nip_peserta',
+        'tanggal_periksa_peserta',
         'dibuat_oleh',
     ];
 

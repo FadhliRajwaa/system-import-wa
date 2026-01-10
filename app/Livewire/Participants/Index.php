@@ -181,7 +181,7 @@ class Index extends Component
     {
         // Resolve service internally (Livewire actions don't support method injection)
         $waService = app(PesanWaService::class);
-        
+
         if (empty($this->selectedRows)) {
             $this->dispatch('show-toast', type: 'error', message: 'Pilih minimal satu peserta');
             return;
@@ -189,7 +189,14 @@ class Index extends Component
 
         /** @var User $user */
         $user = Auth::user();
-        
+
+        // Check SaungWA credentials for API-based sending
+        $provider = config('services.whatsapp.provider', 'manual');
+        if ($provider === 'saungwa' && (empty($user->saungwa_appkey) || empty($user->saungwa_authkey))) {
+            $this->dispatch('show-toast', type: 'error', message: 'Konfigurasi SaungWA belum diatur. Silakan ke menu Konfigurasi WA.');
+            return;
+        }
+
         // Build query using composite keys
         $query = Peserta::query()
             ->with(['paket', 'instansi']) // Eager load for message generation
@@ -212,7 +219,7 @@ class Index extends Component
 
         $allSelected = $query->get();
 
-        // Filter eligible participants
+        // Filter eligible participants (allow re-sending)
         $pesertaEligible = $allSelected->filter(function ($peserta) {
             // Must have phone number
             if (empty($peserta->no_hp_wa)) {
@@ -222,10 +229,7 @@ class Index extends Component
             if ($peserta->status_pdf !== 'uploaded') {
                 return false;
             }
-            // Skip already sent
-            if ($peserta->status_wa === 'sent') {
-                return false;
-            }
+            // Allow re-sending even if already sent
             return true;
         });
 
@@ -233,17 +237,15 @@ class Index extends Component
             $reasons = [];
             $noPhone = $allSelected->filter(fn($p) => empty($p->no_hp_wa))->count();
             $noPdf = $allSelected->filter(fn($p) => $p->status_pdf !== 'uploaded')->count();
-            $alreadySent = $allSelected->filter(fn($p) => $p->status_wa === 'sent')->count();
-            
+
             if ($noPhone > 0) $reasons[] = "{$noPhone} tanpa no HP";
             if ($noPdf > 0) $reasons[] = "{$noPdf} belum upload PDF";
-            if ($alreadySent > 0) $reasons[] = "{$alreadySent} sudah terkirim";
-            
+
             $message = 'Tidak ada peserta yang bisa dikirim WA';
             if (!empty($reasons)) {
                 $message .= ' (' . implode(', ', $reasons) . ')';
             }
-            
+
             $this->dispatch('show-toast', type: 'warning', message: $message);
             return;
         }
@@ -261,6 +263,7 @@ class Index extends Component
                 'status' => 'belum_kirim',
                 'percobaan' => 0,
                 'nrp_nip_peserta' => $peserta->nrp_nip,
+                'tanggal_periksa_peserta' => $peserta->tanggal_periksa,
                 'dibuat_oleh' => Auth::id(),
             ]);
 
@@ -397,6 +400,112 @@ class Index extends Component
             'failed' => 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
             'queued' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
         ];
+    }
+
+    /**
+     * Mark WA as sent when user clicks wa.me link (manual sending)
+     * This updates status without actually sending via API
+     */
+    public function markWaSent(string $nrpNip, string $tanggalPeriksa): void
+    {
+        /** @var User $user */
+        $user = Auth::user();
+
+        $peserta = Peserta::where('nrp_nip', $nrpNip)
+            ->whereRaw('DATE(tanggal_periksa) = ?', [$tanggalPeriksa])
+            ->when(!$user->isAdmin(), fn ($q) => $q->where('diupload_oleh', $user->id))
+            ->first();
+
+        if (!$peserta) {
+            return; // Silently fail - link already opened
+        }
+
+        // Update peserta status
+        $peserta->update([
+            'status_wa' => 'sent',
+            'waktu_kirim_wa' => now(),
+            'error_wa' => null
+        ]);
+
+        // Create or update pesan_wa record
+        $pesan = PesanWa::updateOrCreate(
+            [
+                'nrp_nip_peserta' => $peserta->nrp_nip,
+                'tanggal_periksa_peserta' => $peserta->tanggal_periksa,
+            ],
+            [
+                'provider' => 'manual',
+                'no_tujuan' => $peserta->no_hp_wa,
+                'isi_pesan' => $this->generateWaMessage($peserta),
+                'status' => 'success',
+                'waktu_kirim' => now(),
+                'percobaan' => 1,
+                'dibuat_oleh' => Auth::id(),
+            ]
+        );
+    }
+
+    /**
+     * Send WA to a single participant via SaungWA API
+     */
+    public function sendSingleWa(string $nrpNip, string $tanggalPeriksa): void
+    {
+        $waService = app(PesanWaService::class);
+
+        /** @var User $user */
+        $user = Auth::user();
+
+        // Check if SaungWA is configured
+        if (empty($user->saungwa_appkey) || empty($user->saungwa_authkey)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Konfigurasi SaungWA belum diatur. Silakan ke menu Konfigurasi WA.');
+            return;
+        }
+
+        $peserta = Peserta::with(['instansi'])
+            ->where('nrp_nip', $nrpNip)
+            ->whereRaw('DATE(tanggal_periksa) = ?', [$tanggalPeriksa])
+            ->when(!$user->isAdmin(), fn ($q) => $q->where('diupload_oleh', $user->id))
+            ->first();
+
+        if (!$peserta) {
+            $this->dispatch('show-toast', type: 'error', message: 'Data peserta tidak ditemukan');
+            return;
+        }
+
+        // Validate
+        if (empty($peserta->no_hp_wa)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Nomor HP tidak tersedia');
+            return;
+        }
+
+        if ($peserta->status_pdf !== 'uploaded') {
+            $this->dispatch('show-toast', type: 'error', message: 'PDF belum diupload');
+            return;
+        }
+
+        // Allow re-sending even if already sent (no restriction on status_wa)
+
+        // Create message record
+        $pesan = PesanWa::create([
+            'provider' => 'saungwa',
+            'no_tujuan' => $peserta->no_hp_wa,
+            'isi_pesan' => $this->generateWaMessage($peserta),
+            'status' => 'belum_kirim',
+            'percobaan' => 0,
+            'nrp_nip_peserta' => $peserta->nrp_nip,
+            'tanggal_periksa_peserta' => $peserta->tanggal_periksa,
+            'dibuat_oleh' => Auth::id(),
+        ]);
+
+        // Send via SaungWA
+        $result = $waService->sendNow($pesan, $peserta);
+
+        if ($result['success']) {
+            $this->dispatch('show-toast', type: 'success', message: "WA berhasil dikirim ke {$peserta->nama}");
+        } else {
+            $error = $result['error'] ?? 'Gagal kirim WA';
+            $this->dispatch('show-toast', type: 'error', message: "Gagal: {$error}");
+        }
     }
 
     // ========== DELETE METHODS ==========

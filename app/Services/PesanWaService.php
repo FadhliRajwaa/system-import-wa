@@ -40,25 +40,27 @@ class PesanWaService
             $phone = $this->formatPhoneForWaMe($pesan->no_tujuan);
             $message = urlencode($pesan->isi_pesan);
             $waUrl = "https://wa.me/{$phone}?text={$message}";
-            
-            // Update status to 'pending' (user will manually send)
+
+            // Update status to 'belum_kirim' (user will manually send via wa.me link)
+            // Note: pesan_wa.status ENUM is: 'belum_kirim', 'success', 'gagal'
             $pesan->update([
-                'status' => 'pending',
+                'status' => 'belum_kirim',
                 'waktu_kirim' => now(),
             ]);
-            
+
+            // Note: peserta.status_wa ENUM is: 'not_sent', 'queued', 'sent', 'failed'
             $peserta->update([
-                'status_wa' => 'pending',
+                'status_wa' => 'queued',
                 'error_wa' => null
             ]);
-            
+
             return [
-                'success' => true, 
+                'success' => true,
                 'mode' => 'manual',
                 'url' => $waUrl,
                 'phone' => $phone
             ];
-            
+
         } catch (\Exception $e) {
             Log::error('WA Manual Error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage()];
@@ -165,6 +167,7 @@ class PesanWaService
     
     /**
      * SaungWA API sending - uses authenticated user's appkey and authkey
+     * Supports sending message with PDF file attachment
      */
     protected function sendViaSaungwa(PesanWa $pesan, Peserta $peserta): array
     {
@@ -180,11 +183,37 @@ class PesanWaService
             // Format phone number
             $phone = $this->formatPhoneForWaMe($pesan->no_tujuan);
 
-            $response = Http::asForm()->post($apiUrl, [
+            // Build POST data
+            $postData = [
                 'appkey' => $user->saungwa_appkey,
                 'authkey' => $user->saungwa_authkey,
                 'to' => $phone,
                 'message' => $pesan->isi_pesan,
+                'sandbox' => 'false',
+            ];
+
+            // Add PDF file URL if peserta has uploaded PDF
+            if ($peserta->sudahAdaPdf() && $peserta->path_pdf) {
+                $pdfUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($peserta->path_pdf);
+                $postData['file'] = $pdfUrl;
+
+                Log::info('SaungWA: Sending with PDF attachment', [
+                    'phone' => $phone,
+                    'pdf_url' => $pdfUrl,
+                ]);
+            }
+
+            // Add timeout and retry for better reliability
+            $response = Http::timeout(30)
+                ->retry(2, 1000) // Retry 2 times with 1 second delay
+                ->asForm()
+                ->post($apiUrl, $postData);
+
+            // Log response for debugging
+            Log::info('SaungWA API Response', [
+                'phone' => $phone,
+                'status' => $response->status(),
+                'body' => substr($response->body(), 0, 500),
             ]);
 
             if ($response->successful()) {
@@ -205,12 +234,33 @@ class PesanWaService
 
                     return ['success' => true, 'mode' => 'saungwa', 'data' => $data];
                 } else {
-                    $errorMsg = $data['message'] ?? 'Unknown SaungWA error';
+                    // SaungWA returned success HTTP but error in response body
+                    $errorMsg = $data['message'] ?? $data['error'] ?? 'Unknown SaungWA error';
                     throw new \Exception($errorMsg);
                 }
             } else {
-                throw new \Exception('SaungWA API error: ' . $response->body());
+                // HTTP error (4xx, 5xx)
+                $statusCode = $response->status();
+                throw new \Exception("SaungWA API error (HTTP {$statusCode}): " . $response->body());
             }
+
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            // Connection timeout or network error
+            $errorMsg = 'SaungWA connection timeout - server tidak merespon';
+            Log::error('SaungWA Connection Error: ' . $e->getMessage());
+
+            $pesan->update([
+                'status' => 'gagal',
+                'percobaan' => $pesan->percobaan + 1,
+                'error_terakhir' => $errorMsg,
+            ]);
+
+            $peserta->update([
+                'status_wa' => 'failed',
+                'error_wa' => $errorMsg
+            ]);
+
+            return ['success' => false, 'error' => $errorMsg];
 
         } catch (\Exception $e) {
             $errorMsg = $this->truncateError($e->getMessage());

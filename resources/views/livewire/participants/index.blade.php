@@ -141,8 +141,10 @@
                                 <flux:label class="text-xs font-bold uppercase text-slate-500 mb-2">Status WA</flux:label>
                                 <flux:select wire:model.live="filters.status_wa" placeholder="Semua Status">
                                     <option value="">Semua Status</option>
-                                    <option value="belum_kirim">Belum Kirim</option>
-                                    <option value="success">Sukses</option>
+                                    <option value="not_sent">Belum Kirim</option>
+                                    <option value="queued">Antrian</option>
+                                    <option value="sent">Terkirim</option>
+                                    <option value="failed">Gagal</option>
                                 </flux:select>
                             </flux:field>
                         </div>
@@ -317,39 +319,26 @@
                             @endif
                             <td class="px-4 py-3">
                                 <div class="flex items-center justify-end gap-2">
-                                    @if($peserta->no_hp_wa && $peserta->status_wa !== 'success' && $peserta->status_pdf === 'uploaded')
+                                    @if($peserta->no_hp_wa && $peserta->status_pdf === 'uploaded')
                                         @php
                                             $waPhone = preg_replace('/[^0-9]/', '', $peserta->no_hp_wa);
                                             if (str_starts_with($waPhone, '0')) {
                                                 $waPhone = '62' . substr($waPhone, 1);
                                             }
-                                            
-                                            // Ambil template dari instansi peserta, fallback ke DEFAULT jika tidak ada
+
+                                            // Ambil template dari instansi peserta, fallback ke DEFAULT
                                             $instansi = $peserta->instansi;
                                             if (!$instansi) {
                                                 $instansi = \App\Models\Instansi::where('kode', 'DEFAULT')->first();
                                             }
-
-                                            // Ambil template dari database - TIDAK ADA hardcoded template
-                                            $template = $instansi?->template_prolog ?? '';
-
-                                            // Jika template kosong dan tidak ada DEFAULT, skip (tidak bisa kirim WA)
-                                            if (empty(trim($template))) {
-                                                $template = 'Hasil pemeriksaan kesehatan: {{link}}';
-                                            }
-
-                                            // Strip HTML tags dari Quill editor
+                                            $template = $instansi?->template_prolog ?? 'Hasil pemeriksaan kesehatan: {{link}}';
                                             $template = strip_tags($template);
                                             $template = html_entity_decode($template, ENT_QUOTES, 'UTF-8');
                                             $template = preg_replace("/\n{3,}/", "\n\n", trim($template));
 
-                                            // Generate link PDF menggunakan Storage::url() untuk kompatibilitas
                                             $pdfLink = $peserta->path_pdf ? \Illuminate\Support\Facades\Storage::disk('public')->url($peserta->path_pdf) : '';
-
-                                            // Hitung tahun anggaran
                                             $tahunAnggaran = $peserta->tanggal_periksa ? $peserta->tanggal_periksa->format('Y') : date('Y');
 
-                                            // Replace variabel placeholder dengan data peserta
                                             $waMessage = str_replace(
                                                 ['{{waktu}}', '{{no_lab}}', '{{nama_pasien}}', '{{pangkat}}', '{{nrp}}', '{{satuan_kerja}}', '{{tahun_anggaran}}', '{{link}}'],
                                                 [
@@ -364,16 +353,20 @@
                                                 ],
                                                 $template
                                             );
-                                            
                                             $waUrl = "https://wa.me/{$waPhone}?text=" . urlencode($waMessage);
                                         @endphp
-                                        <a 
+                                        <a
                                             href="{{ $waUrl }}"
                                             target="_blank"
-                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-100 hover:bg-green-200 dark:text-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/50 rounded-lg transition-colors"
-                                            title="Kirim WA Manual (buka WhatsApp Web)"
+                                            wire:click="markWaSent('{{ $peserta->nrp_nip }}', '{{ $peserta->tanggal_periksa->format('Y-m-d') }}')"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors {{ $peserta->status_wa === 'sent' ? 'text-emerald-700 bg-emerald-100 hover:bg-emerald-200 dark:text-emerald-300 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50' : 'text-green-700 bg-green-100 hover:bg-green-200 dark:text-green-300 dark:bg-green-900/30 dark:hover:bg-green-900/50' }}"
+                                            title="{{ $peserta->status_wa === 'sent' ? 'Kirim ulang via WhatsApp Web' : 'Kirim via WhatsApp Web' }}"
                                         >
-                                            <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                            @if($peserta->status_wa === 'sent')
+                                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                                            @else
+                                                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
+                                            @endif
                                             WA
                                         </a>
                                     @endif
