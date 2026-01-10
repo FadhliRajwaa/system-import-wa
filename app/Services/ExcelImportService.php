@@ -56,11 +56,15 @@ class ExcelImportService
 
     /**
      * Header aliases untuk format khusus dari Excel
+     * Support berbagai variasi dengan/tanpa spasi sebelum tanda kurung
      */
     protected array $headerAliases = [
         'tgl_lahir(dd/mm/yyyy)' => 'tanggal_lahir',
+        'tgl_lahir (dd/mm/yyyy)' => 'tanggal_lahir',
         'gender(pria/wanita)' => 'jenis_kelamin',
+        'gender (pria/wanita)' => 'jenis_kelamin',
         'tgl_pemeriksaan(dd/mm/yyyy)' => 'tanggal_periksa',
+        'tgl_pemeriksaan (dd/mm/yyyy)' => 'tanggal_periksa',
     ];
 
     /**

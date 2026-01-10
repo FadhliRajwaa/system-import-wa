@@ -68,10 +68,10 @@ class TemplateExport implements FromArray, WithHeadings, WithStyles, WithColumnW
             'Jabatan',                       // D
             'satuan_kerja',                  // E
             'no_hp',                         // F - Wajib
-            'tgl_lahir (dd/mm/yyyy)',        // G
-            'gender (Pria/Wanita)',          // H
+            'tgl_lahir(dd/mm/yyyy)',         // G
+            'gender(Pria/Wanita)',           // H
             'no_lab',                        // I
-            'tgl_pemeriksaan (dd/mm/yyyy)',  // J - Wajib
+            'tgl_pemeriksaan(dd/mm/yyyy)',   // J - Wajib
             'kode_paket',                    // K
             'kode_perusahaan',               // L
         ];
