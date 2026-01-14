@@ -190,10 +190,10 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        // Check SaungWA credentials for API-based sending
+        // Check Wablas credentials for API-based sending
         $provider = config('services.whatsapp.provider', 'manual');
-        if ($provider === 'saungwa' && (empty($user->saungwa_appkey) || empty($user->saungwa_authkey))) {
-            $this->dispatch('show-toast', type: 'error', message: 'Konfigurasi SaungWA belum diatur. Silakan ke menu Konfigurasi WA.');
+        if ($provider === 'wablas' && (empty($user->wablas_token) || empty($user->wablas_secret_key))) {
+            $this->dispatch('show-toast', type: 'error', message: 'Konfigurasi Wablas belum diatur. Silakan ke menu Konfigurasi WA.');
             return;
         }
 
@@ -446,7 +446,7 @@ class Index extends Component
     }
 
     /**
-     * Send WA to a single participant via SaungWA API
+     * Send WA to a single participant via Wablas API
      */
     public function sendSingleWa(string $nrpNip, string $tanggalPeriksa): void
     {
@@ -455,9 +455,9 @@ class Index extends Component
         /** @var User $user */
         $user = Auth::user();
 
-        // Check if SaungWA is configured
-        if (empty($user->saungwa_appkey) || empty($user->saungwa_authkey)) {
-            $this->dispatch('show-toast', type: 'error', message: 'Konfigurasi SaungWA belum diatur. Silakan ke menu Konfigurasi WA.');
+        // Check if Wablas is configured
+        if (empty($user->wablas_token) || empty($user->wablas_secret_key)) {
+            $this->dispatch('show-toast', type: 'error', message: 'Konfigurasi Wablas belum diatur. Silakan ke menu Konfigurasi WA.');
             return;
         }
 
@@ -487,7 +487,7 @@ class Index extends Component
 
         // Create message record
         $pesan = PesanWa::create([
-            'provider' => 'saungwa',
+            'provider' => config('services.whatsapp.provider', 'wablas'),
             'no_tujuan' => $peserta->no_hp_wa,
             'isi_pesan' => $this->generateWaMessage($peserta),
             'status' => 'belum_kirim',
@@ -497,7 +497,7 @@ class Index extends Component
             'dibuat_oleh' => Auth::id(),
         ]);
 
-        // Send via SaungWA
+        // Send via Wablas
         $result = $waService->sendNow($pesan, $peserta);
 
         if ($result['success']) {

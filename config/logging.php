@@ -127,9 +127,9 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
-        'saungwa' => [
+        'wablas' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/saungwa.log'),
+            'path' => storage_path('logs/wablas.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => 30,
             'replace_placeholders' => true,

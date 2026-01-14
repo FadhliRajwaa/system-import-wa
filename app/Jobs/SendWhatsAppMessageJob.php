@@ -84,23 +84,23 @@ class SendWhatsAppMessageJob implements ShouldQueue
         $provider = config('services.whatsapp.provider', 'meta_cloud_api');
 
         return match ($provider) {
-            'saungwa' => $this->sendViaSaungwa(),
+            'wablas' => $this->sendViaWablas(),
             'meta_cloud_api' => $this->sendViaMetaCloudApi(),
             'twilio' => $this->sendViaTwilio(),
             default => $this->sendMock(),
         };
     }
 
-    protected function sendViaSaungwa(): string
+    protected function sendViaWablas(): string
     {
         // Get the user who created this message
         $user = $this->message->creator;
 
-        if (!$user || empty($user->saungwa_appkey) || empty($user->saungwa_authkey)) {
-            throw new Exception('SaungWA credentials belum dikonfigurasi');
+        if (!$user || empty($user->wablas_token) || empty($user->wablas_secret_key)) {
+            throw new Exception('Wablas credentials belum dikonfigurasi');
         }
 
-        $apiUrl = config('services.saungwa.api_url', 'https://app.saungwa.com/api/create-message');
+        $apiUrl = config('services.wablas.api_url', 'https://wablas.com') . '/api/send-message';
 
         // Format phone number (remove + and ensure starts with country code)
         $phone = preg_replace('/[^0-9]/', '', $this->participant->phone_e164);
@@ -108,24 +108,24 @@ class SendWhatsAppMessageJob implements ShouldQueue
             $phone = '62' . substr($phone, 1);
         }
 
-        $response = Http::asForm()->post($apiUrl, [
-            'appkey' => $user->saungwa_appkey,
-            'authkey' => $user->saungwa_authkey,
-            'to' => $phone,
+        $response = Http::withHeaders([
+            'Authorization' => $user->wablas_token . '.' . $user->wablas_secret_key,
+        ])->asForm()->post($apiUrl, [
+            'phone' => $phone,
             'message' => $this->message->message_body,
         ]);
 
         if (!$response->successful()) {
-            throw new Exception('SaungWA API error: ' . $response->body());
+            throw new Exception('Wablas API error: ' . $response->body());
         }
 
         $data = $response->json();
 
-        if (!isset($data['message_status']) || $data['message_status'] !== 'Success') {
-            throw new Exception($data['message'] ?? 'SaungWA sending failed');
+        if (!isset($data['status']) || $data['status'] !== true) {
+            throw new Exception($data['message'] ?? 'Wablas sending failed');
         }
 
-        return 'saungwa_' . ($data['data']['id'] ?? uniqid());
+        return 'wablas_' . ($data['data']['messages'][0]['id'] ?? uniqid());
     }
 
     protected function sendViaMetaCloudApi(): string

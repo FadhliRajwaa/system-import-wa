@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\SaungwaWebhookController;
+use App\Http\Controllers\WablasWebhookController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -9,5 +9,5 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-// SaungWA Webhook endpoint
-Route::post('/webhook/saungwa', [SaungwaWebhookController::class, 'handle']);
+// Wablas Webhook endpoint
+Route::post('/webhook/wablas', [WablasWebhookController::class, 'handle']);
