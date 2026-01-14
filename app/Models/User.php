@@ -26,9 +26,9 @@ class User extends Authenticatable
         'is_active',
         'role',
         'kode_user',
-        'saungwa_appkey',
-        'saungwa_authkey',
-        'saungwa_phone',
+        'wablas_token',
+        'wablas_phone',
+        'wablas_secret_key',
     ];
 
     /**

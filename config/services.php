@@ -36,15 +36,15 @@ return [
     ],
 
     'whatsapp' => [
-        'provider' => env('WA_PROVIDER', 'saungwa'),
+        'provider' => env('WA_PROVIDER', 'wablas'),
         'phone_number_id' => env('WA_PHONE_NUMBER_ID'),
         'access_token' => env('WA_ACCESS_TOKEN'),
         'rate_limit_per_second' => (int) env('WA_RATE_LIMIT_PER_SECOND', 1),
         'batch_limit' => (int) env('WA_BATCH_LIMIT', 50),
     ],
 
-    'saungwa' => [
-        'api_url' => env('SAUNGWA_API_URL', 'https://app.saungwa.com/api/create-message'),
+    'wablas' => [
+        'api_url' => env('WABLAS_API_URL', 'https://wablas.com'),
     ],
 
 ];

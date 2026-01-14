@@ -41,7 +41,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/profile', Profile::class)->name('profile.edit');
     Route::get('settings/password', Password::class)->name('user-password.edit');
     Route::get('settings/appearance', Appearance::class)->name('appearance.edit');
-    Route::get('settings/saungwa', \App\Livewire\Settings\Saungwa::class)->name('settings.saungwa');
+    Route::get('settings/wablas', \App\Livewire\Settings\Wablas::class)->name('settings.wablas');
     
     // Pengaturan Paket dan Instansi (all users with scoping)
     Route::get('settings/paket', PaketIndex::class)->name('settings.paket');

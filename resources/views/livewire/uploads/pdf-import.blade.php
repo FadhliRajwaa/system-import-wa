@@ -200,29 +200,6 @@
                                     <p class="text-sm text-slate-500 dark:text-slate-400">Mohon tunggu sebentar...</p>
                                 </div>
                             </div>
-
-                            <!-- Loading State with Progress (inside x-data scope) -->
-                            <div x-show="processing" x-cloak class="mt-6 w-full">
-                                <div class="flex items-center gap-3 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800">
-                                    <div class="relative w-10 h-10 flex-shrink-0">
-                                        <svg class="w-10 h-10 transform -rotate-90">
-                                            <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="3" fill="none" class="text-red-200 dark:text-red-800"/>
-                                            <circle cx="20" cy="20" r="16" stroke="currentColor" stroke-width="3" fill="none"
-                                                    class="text-red-500"
-                                                    stroke-linecap="round"
-                                                    :stroke-dasharray="100.5"
-                                                    :stroke-dashoffset="100.5 - (processingProgress / 100 * 100.5)"/>
-                                        </svg>
-                                        <div class="absolute inset-0 flex items-center justify-center">
-                                            <span class="text-xs font-bold text-red-600" x-text="Math.round(processingProgress) + '%'"></span>
-                                        </div>
-                                    </div>
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium text-red-700 dark:text-red-300" x-text="statusText"></p>
-                                        <p class="text-xs text-red-600/80">Mohon tunggu sebentar.</p>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
                         <!-- Selected Files Preview -->
@@ -275,6 +252,28 @@
 
             <!-- Sidebar Info -->
             <div class="space-y-6">
+                <!-- Statistics Cards -->
+                <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm">
+                    <h3 class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <flux:icon name="chart-bar" class="w-5 h-5 text-red-600" />
+                        Statistik PDF
+                    </h3>
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="text-center p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                            <p class="text-2xl font-bold text-slate-900 dark:text-white">{{ $pdfStats['total'] }}</p>
+                            <p class="text-xs text-slate-500">Total</p>
+                        </div>
+                        <div class="text-center p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                            <p class="text-2xl font-bold text-emerald-600">{{ $pdfStats['uploaded'] }}</p>
+                            <p class="text-xs text-emerald-600">Ada PDF</p>
+                        </div>
+                        <div class="text-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                            <p class="text-2xl font-bold text-amber-600">{{ $pdfStats['not_uploaded'] }}</p>
+                            <p class="text-xs text-amber-600">Belum</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Instructions -->
                 <div class="bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
                     <h3 class="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
@@ -369,12 +368,13 @@
                     </div>
                     <div class="max-h-64 overflow-y-auto">
                         @forelse($importResults['matched'] ?? [] as $item)
-                            <div class="flex items-center gap-3 p-3 border-b border-slate-100 dark:border-slate-800 last:border-0">
+                            <div class="flex items-center gap-3 p-3 border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 transition-colors cursor-pointer">
                                 <flux:icon name="document-check" class="w-5 h-5 text-emerald-500" />
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{{ $item['filename'] }}</p>
-                                    <p class="text-xs text-slate-500">No Lab: {{ $item['no_lab'] }} → {{ $item['nama'] }}</p>
+                                    <p class="text-xs text-slate-500">No Lab: {{ $item['no_lab'] }} &rarr; {{ $item['nama'] }}</p>
                                 </div>
+                                <span class="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 rounded-full">Tersimpan</span>
                             </div>
                         @empty
                             <div class="p-4 text-center text-slate-500 text-sm">Tidak ada file yang cocok</div>
@@ -436,4 +436,197 @@
             </div>
         </div>
     @endif
+
+    <!-- PDF History Table Section -->
+    <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <!-- Header -->
+        <div class="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-800/30">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <flux:icon name="document-text" class="w-5 h-5 text-red-600" />
+                        Riwayat Upload PDF
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Daftar peserta dan status PDF mereka</p>
+                </div>
+                
+                <!-- Stats Pills -->
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-medium text-slate-600 dark:text-slate-400">
+                        <flux:icon name="document" class="w-3.5 h-3.5" />
+                        Total: {{ $pdfStats['total'] }}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-full text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        <flux:icon name="check-circle" class="w-3.5 h-3.5" />
+                        Ada PDF: {{ $pdfStats['uploaded'] }}
+                    </span>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 rounded-full text-xs font-medium text-amber-600 dark:text-amber-400">
+                        <flux:icon name="clock" class="w-3.5 h-3.5" />
+                        Belum: {{ $pdfStats['not_uploaded'] }}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+            <div class="flex flex-col lg:flex-row gap-4">
+                <!-- Per Page -->
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap hidden sm:inline">Tampilkan</span>
+                    <select 
+                        wire:model.live="perPage" 
+                        class="block w-20 rounded-lg border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm py-2"
+                    >
+                        <option value="10">10</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                    <span class="text-sm text-slate-500 dark:text-slate-400 whitespace-nowrap hidden sm:inline">data</span>
+                </div>
+
+                <!-- Search -->
+                <div class="flex-1 relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <flux:icon name="magnifying-glass" class="h-5 w-5 text-slate-400" />
+                    </div>
+                    <input 
+                        type="text"
+                        wire:model.live.debounce.300ms="search" 
+                        placeholder="Cari nama, NRP/NIP, No Lab..." 
+                        class="block w-full pl-10 pr-10 py-2.5 border border-slate-300 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm transition-shadow"
+                    />
+                    @if($search)
+                        <button wire:click="$set('search', '')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-red-500 transition-colors">
+                            <flux:icon name="x-mark" class="h-5 w-5" />
+                        </button>
+                    @endif
+                </div>
+
+                <!-- Filter Status -->
+                <div class="flex items-center gap-2">
+                    <select 
+                        wire:model.live="filterStatus" 
+                        class="block w-full sm:w-44 rounded-xl border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 shadow-sm py-2.5"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="uploaded">Ada PDF</option>
+                        <option value="not_uploaded">Belum Ada PDF</option>
+                    </select>
+
+                    @if($search || $filterStatus)
+                        <flux:button variant="ghost" size="sm" wire:click="resetFilters" class="text-red-600 hover:text-red-700 whitespace-nowrap">
+                            <flux:icon name="x-mark" class="w-4 h-4" />
+                            <span class="hidden sm:inline">Reset</span>
+                        </flux:button>
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="relative">
+            <!-- Mobile scroll hint -->
+            <div class="lg:hidden absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white dark:from-slate-900 to-transparent pointer-events-none z-10"></div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left">
+                    <thead class="text-xs uppercase bg-slate-100 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+                        <tr class="text-slate-600 dark:text-slate-400">
+                            <th class="px-4 py-3.5 font-semibold text-center w-12">#</th>
+                            <th class="px-4 py-3.5 font-semibold">No Lab</th>
+                            <th class="px-4 py-3.5 font-semibold">Nama Peserta</th>
+                            <th class="px-4 py-3.5 font-semibold hidden md:table-cell">NRP/NIP</th>
+                            <th class="px-4 py-3.5 font-semibold hidden lg:table-cell">Satuan Kerja</th>
+                            <th class="px-4 py-3.5 font-semibold hidden sm:table-cell">Tgl Periksa</th>
+                            <th class="px-4 py-3.5 font-semibold text-center">Status PDF</th>
+                            <th class="px-4 py-3.5 font-semibold text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        @forelse($pdfHistory as $peserta)
+                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group" wire:key="pdf-{{ $peserta->nrp_nip }}-{{ $peserta->tanggal_periksa->format('Ymd') }}">
+                                <td class="px-4 py-3.5 text-center text-slate-500 font-medium">
+                                    {{ $loop->iteration + ($pdfHistory->currentPage() - 1) * $pdfHistory->perPage() }}
+                                </td>
+                                <td class="px-4 py-3.5">
+                                    <span class="font-mono font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                                        {{ $peserta->no_lab ?? '-' }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3.5">
+                                    <div class="font-semibold text-slate-900 dark:text-white">{{ $peserta->nama }}</div>
+                                    <!-- Mobile only: Show extra info -->
+                                    <div class="md:hidden text-xs text-slate-500 mt-1">
+                                        {{ $peserta->nrp_nip }} &bull; {{ $peserta->tanggal_periksa->format('d/m/Y') }}
+                                    </div>
+                                </td>
+                                <td class="px-4 py-3.5 text-slate-600 dark:text-slate-400 hidden md:table-cell font-mono text-xs">
+                                    {{ $peserta->nrp_nip }}
+                                </td>
+                                <td class="px-4 py-3.5 text-slate-600 dark:text-slate-400 hidden lg:table-cell max-w-[200px] truncate" title="{{ $peserta->satuan_kerja }}">
+                                    {{ $peserta->satuan_kerja ?? '-' }}
+                                </td>
+                                <td class="px-4 py-3.5 text-slate-600 dark:text-slate-400 hidden sm:table-cell whitespace-nowrap">
+                                    {{ $peserta->tanggal_periksa->format('d/m/Y') }}
+                                </td>
+                                <td class="px-4 py-3.5 text-center">
+                                    @if($peserta->status_pdf === 'uploaded')
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-full text-xs font-semibold">
+                                            <flux:icon name="check-circle" class="w-3.5 h-3.5" />
+                                            Ada PDF
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-full text-xs font-semibold">
+                                            <flux:icon name="clock" class="w-3.5 h-3.5" />
+                                            Belum
+                                        </span>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3.5 text-center">
+                                            @if($peserta->status_pdf === 'uploaded' && $peserta->path_pdf)
+                                        <!-- Download Button -->
+                                        <a 
+                                            href="{{ Storage::disk('public')->url($peserta->path_pdf) }}"
+                                            download="{{ $peserta->no_lab }}_{{ $peserta->nama }}.pdf"
+                                            class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:hover:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
+                                            title="Download PDF"
+                                        >
+                                            <flux:icon name="arrow-down-tray" class="w-4 h-4" />
+                                        </a>
+                                    @else
+                                        <span class="text-slate-400 text-xs">-</span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="8" class="px-4 py-12 text-center">
+                                    <div class="flex flex-col items-center justify-center text-slate-400">
+                                        <flux:icon name="document-magnifying-glass" class="w-12 h-12 mb-3" />
+                                        <p class="font-medium text-slate-600 dark:text-slate-300">Tidak ada data ditemukan</p>
+                                        <p class="text-sm mt-1">
+                                            @if($search || $filterStatus)
+                                                Coba ubah filter atau kata kunci pencarian
+                                            @else
+                                                Belum ada data peserta. Silakan import data Excel terlebih dahulu.
+                                            @endif
+                                        </p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        @if($pdfHistory->hasPages())
+            <div class="px-4 py-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                {{ $pdfHistory->links() }}
+            </div>
+        @endif
+    </div>
 </div>

@@ -2,16 +2,20 @@
 
 namespace App\Livewire\Uploads;
 
+use App\Models\Peserta;
 use App\Services\PdfImportService;
 use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\WithFileUploads;
+use Livewire\WithPagination;
 
 class PdfImport extends Component
 {
     use WithFileUploads;
+    use WithPagination;
 
     public array $pdfFiles = [];
 
@@ -19,11 +23,32 @@ class PdfImport extends Component
 
     public bool $showResults = false;
 
+    // Search & Filter for PDF history table
+    public string $search = '';
+    public string $filterStatus = ''; // 'uploaded', 'not_uploaded', ''
+    public int $perPage = 10;
+
     // Maximum file size in KB (5MB = 5120KB)
     public const MAX_FILE_SIZE_KB = 5120;
     
     // Maximum number of files per upload
     public const MAX_FILES = 50;
+
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'filterStatus' => ['except' => ''],
+        'perPage' => ['except' => 10],
+    ];
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterStatus(): void
+    {
+        $this->resetPage();
+    }
 
     /**
      * Auto-trigger upload when files are selected
@@ -102,6 +127,75 @@ class PdfImport extends Component
         $this->dispatch('show-toast', type: 'info', message: 'Form direset');
     }
 
+    public function resetFilters(): void
+    {
+        $this->reset('search', 'filterStatus');
+        $this->resetPage();
+    }
+
+    /**
+     * Get peserta by composite key
+     */
+    private function getPesertaByKey(string $nrpNip, string $tanggalPeriksa): ?Peserta
+    {
+        $user = Auth::user();
+        $query = Peserta::where('nrp_nip', $nrpNip)
+            ->where('tanggal_periksa', $tanggalPeriksa);
+        
+        if (!$user->isAdmin()) {
+            $query->where('diupload_oleh', $user->id);
+        }
+        
+        return $query->first();
+    }
+
+    /**
+     * Get PDF history - peserta with uploaded PDF files
+     */
+    public function getPdfHistoryProperty()
+    {
+        $user = Auth::user();
+        
+        $query = Peserta::query()
+            ->with('uploader')
+            ->when(!$user->isAdmin(), function ($q) use ($user) {
+                $q->where('diupload_oleh', $user->id);
+            })
+            ->when($this->search, function ($q) {
+                $q->where(function ($query) {
+                    $query->where('nama', 'like', '%' . $this->search . '%')
+                        ->orWhere('no_lab', 'like', '%' . $this->search . '%')
+                        ->orWhere('nrp_nip', 'like', '%' . $this->search . '%')
+                        ->orWhere('satuan_kerja', 'like', '%' . $this->search . '%');
+                });
+            })
+            ->when($this->filterStatus, function ($q) {
+                $q->where('status_pdf', $this->filterStatus);
+            })
+            ->orderByDesc('updated_at');
+
+        return $query->paginate($this->perPage);
+    }
+
+    /**
+     * Get statistics for PDF upload status
+     */
+    public function getPdfStatsProperty(): array
+    {
+        $user = Auth::user();
+        
+        $query = Peserta::query()
+            ->when(!$user->isAdmin(), function ($q) use ($user) {
+                $q->where('diupload_oleh', $user->id);
+            });
+
+        return [
+            'total' => (clone $query)->count(),
+            'uploaded' => (clone $query)->where('status_pdf', 'uploaded')->count(),
+            'not_uploaded' => (clone $query)->where('status_pdf', 'not_uploaded')->count(),
+        ];
+    }
+
     public function getMatchedCountProperty(): int
     {
         return count($this->importResults['matched'] ?? []);
@@ -119,6 +213,9 @@ class PdfImport extends Component
 
     public function render()
     {
-        return view('livewire.uploads.pdf-import');
+        return view('livewire.uploads.pdf-import', [
+            'pdfHistory' => $this->pdfHistory,
+            'pdfStats' => $this->pdfStats,
+        ]);
     }
 }

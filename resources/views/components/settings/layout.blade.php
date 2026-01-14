@@ -10,7 +10,7 @@
                         <flux:option value="{{ route('two-factor.show') }}" :selected="request()->routeIs('two-factor.show')">Two-Factor Auth</flux:option>
                     @endif
                     <flux:option value="{{ route('appearance.edit') }}" :selected="request()->routeIs('appearance.edit')">Appearance</flux:option>
-                    <flux:option value="{{ route('settings.saungwa') }}" :selected="request()->routeIs('settings.saungwa')">SaungWA API</flux:option>
+                    <flux:option value="{{ route('settings.wablas') }}" :selected="request()->routeIs('settings.wablas')">Wablas API</flux:option>
                 </flux:select>
             </div>
 
@@ -31,8 +31,8 @@
                     <flux:navlist.item :href="route('appearance.edit')" wire:navigate icon="paint-brush">
                         {{ __('Appearance') }}
                     </flux:navlist.item>
-                    <flux:navlist.item :href="route('settings.saungwa')" wire:navigate icon="chat-bubble-left-right">
-                        {{ __('SaungWA API') }}
+                    <flux:navlist.item :href="route('settings.wablas')" wire:navigate icon="chat-bubble-left-right">
+                        {{ __('Wablas API') }}
                     </flux:navlist.item>
                 </flux:navlist>
             </div>

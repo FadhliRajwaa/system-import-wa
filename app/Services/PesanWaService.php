@@ -22,7 +22,7 @@ class PesanWaService
         $provider = config('services.whatsapp.provider', 'manual');
 
         return match($provider) {
-            'saungwa' => $this->sendViaSaungwa($pesan, $peserta),
+            'wablas' => $this->sendViaWablas($pesan, $peserta),
             'meta_cloud_api' => $this->sendViaMetaCloudApi($pesan, $peserta),
             'twilio' => $this->sendViaTwilio($pesan, $peserta),
             default => $this->sendViaManual($pesan, $peserta), // wa.me links
@@ -166,88 +166,35 @@ class PesanWaService
     }
     
     /**
-     * SaungWA API sending - uses authenticated user's appkey and authkey
+     * Wablas API sending - uses authenticated user's token
      * Supports sending message with PDF file attachment
+     * API Docs: https://wablas.com/documentation/api
      */
-    protected function sendViaSaungwa(PesanWa $pesan, Peserta $peserta): array
+    protected function sendViaWablas(PesanWa $pesan, Peserta $peserta): array
     {
         try {
             $user = \Illuminate\Support\Facades\Auth::user();
 
-            if (!$user || empty($user->saungwa_appkey) || empty($user->saungwa_authkey)) {
-                throw new \Exception('SaungWA credentials belum dikonfigurasi untuk user ini');
+            if (!$user || empty($user->wablas_token) || empty($user->wablas_secret_key)) {
+                throw new \Exception('Wablas token dan secret key belum dikonfigurasi untuk user ini');
             }
-
-            $apiUrl = config('services.saungwa.api_url', 'https://app.saungwa.com/api/create-message');
 
             // Format phone number
             $phone = $this->formatPhoneForWaMe($pesan->no_tujuan);
 
-            // Build POST data
-            $postData = [
-                'appkey' => $user->saungwa_appkey,
-                'authkey' => $user->saungwa_authkey,
-                'to' => $phone,
-                'message' => $pesan->isi_pesan,
-                'sandbox' => 'false',
-            ];
-
-            // Add PDF file URL if peserta has uploaded PDF
+            // Check if peserta has PDF to send document or just text
             if ($peserta->sudahAdaPdf() && $peserta->path_pdf) {
-                $pdfUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($peserta->path_pdf);
-                $postData['file'] = $pdfUrl;
-
-                Log::info('SaungWA: Sending with PDF attachment', [
-                    'phone' => $phone,
-                    'pdf_url' => $pdfUrl,
-                ]);
-            }
-
-            // Add timeout and retry for better reliability
-            $response = Http::timeout(30)
-                ->retry(2, 1000) // Retry 2 times with 1 second delay
-                ->asForm()
-                ->post($apiUrl, $postData);
-
-            // Log response for debugging
-            Log::info('SaungWA API Response', [
-                'phone' => $phone,
-                'status' => $response->status(),
-                'body' => substr($response->body(), 0, 500),
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-
-                // SaungWA returns message_status in response
-                if (isset($data['message_status']) && $data['message_status'] === 'Success') {
-                    $pesan->update([
-                        'status' => 'success',
-                        'waktu_kirim' => now(),
-                    ]);
-
-                    $peserta->update([
-                        'status_wa' => 'sent',
-                        'waktu_kirim_wa' => now(),
-                        'error_wa' => null
-                    ]);
-
-                    return ['success' => true, 'mode' => 'saungwa', 'data' => $data];
-                } else {
-                    // SaungWA returned success HTTP but error in response body
-                    $errorMsg = $data['message'] ?? $data['error'] ?? 'Unknown SaungWA error';
-                    throw new \Exception($errorMsg);
-                }
+                // Send document with caption using Wablas API
+                return $this->sendWablasDocument($user, $phone, $pesan, $peserta);
             } else {
-                // HTTP error (4xx, 5xx)
-                $statusCode = $response->status();
-                throw new \Exception("SaungWA API error (HTTP {$statusCode}): " . $response->body());
+                // Send text message only
+                return $this->sendWablasText($user, $phone, $pesan, $peserta);
             }
 
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
             // Connection timeout or network error
-            $errorMsg = 'SaungWA connection timeout - server tidak merespon';
-            Log::error('SaungWA Connection Error: ' . $e->getMessage());
+            $errorMsg = 'Wablas connection timeout - server tidak merespon';
+            Log::error('Wablas Connection Error: ' . $e->getMessage());
 
             $pesan->update([
                 'status' => 'gagal',
@@ -276,8 +223,123 @@ class PesanWaService
                 'error_wa' => $errorMsg
             ]);
 
-            Log::error('SaungWA Send Error: ' . $e->getMessage());
+            Log::error('Wablas Send Error: ' . $e->getMessage());
             return ['success' => false, 'error' => $errorMsg];
+        }
+    }
+
+    /**
+     * Send text message via Wablas API
+     * POST https://wablas.com/api/send-message
+     */
+    protected function sendWablasText($user, string $phone, PesanWa $pesan, Peserta $peserta): array
+    {
+        $apiUrl = config('services.wablas.api_url', 'https://wablas.com') . '/api/send-message';
+
+        $postData = [
+            'phone' => $phone,
+            'message' => $pesan->isi_pesan,
+        ];
+
+        Log::info('Wablas: Sending text message', [
+            'phone' => $phone,
+            'message_length' => strlen($pesan->isi_pesan),
+        ]);
+
+        // Authorization header format: {token}.{secret_key}
+        // Docs: https://wablas.com/documentation/api
+        $response = Http::timeout(30)
+            ->retry(2, 1000)
+            ->withHeaders([
+                'Authorization' => $user->wablas_token . '.' . $user->wablas_secret_key,
+            ])
+            ->asForm()
+            ->post($apiUrl, $postData);
+
+        return $this->handleWablasResponse($response, $pesan, $peserta, 'text');
+    }
+
+    /**
+     * Send document (PDF) with caption via Wablas API
+     * POST https://wablas.com/api/send-document
+     */
+    protected function sendWablasDocument($user, string $phone, PesanWa $pesan, Peserta $peserta): array
+    {
+        $apiUrl = config('services.wablas.api_url', 'https://wablas.com') . '/api/send-document';
+
+        // Get public URL for the PDF
+        $pdfUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($peserta->path_pdf);
+
+        $postData = [
+            'phone' => $phone,
+            'document' => $pdfUrl,
+            'caption' => $pesan->isi_pesan,
+        ];
+
+        Log::info('Wablas: Sending document with caption', [
+            'phone' => $phone,
+            'pdf_url' => $pdfUrl,
+            'caption_length' => strlen($pesan->isi_pesan),
+        ]);
+
+        // Authorization header format: {token}.{secret_key}
+        // Docs: https://wablas.com/documentation/api
+        $response = Http::timeout(60) // Longer timeout for document upload
+            ->retry(2, 2000)
+            ->withHeaders([
+                'Authorization' => $user->wablas_token . '.' . $user->wablas_secret_key,
+            ])
+            ->asForm()
+            ->post($apiUrl, $postData);
+
+        return $this->handleWablasResponse($response, $pesan, $peserta, 'document');
+    }
+
+    /**
+     * Handle Wablas API response
+     */
+    protected function handleWablasResponse($response, PesanWa $pesan, Peserta $peserta, string $type): array
+    {
+        Log::info('Wablas API Response', [
+            'type' => $type,
+            'status' => $response->status(),
+            'body' => substr($response->body(), 0, 500),
+        ]);
+
+        if ($response->successful()) {
+            $data = $response->json();
+
+            // Wablas returns status: true on success
+            if (isset($data['status']) && $data['status'] === true) {
+                $pesan->update([
+                    'status' => 'success',
+                    'waktu_kirim' => now(),
+                ]);
+
+                $peserta->update([
+                    'status_wa' => 'sent',
+                    'waktu_kirim_wa' => now(),
+                    'error_wa' => null
+                ]);
+
+                $messageId = $data['data']['messages'][0]['id'] ?? ($data['data']['id'] ?? 'wablas_' . uniqid());
+
+                return [
+                    'success' => true,
+                    'mode' => 'wablas',
+                    'type' => $type,
+                    'id' => $messageId,
+                    'data' => $data
+                ];
+            } else {
+                // Wablas returned success HTTP but error in response body
+                $errorMsg = $data['message'] ?? $data['error'] ?? 'Unknown Wablas error';
+                throw new \Exception($errorMsg);
+            }
+        } else {
+            // HTTP error (4xx, 5xx)
+            $statusCode = $response->status();
+            throw new \Exception("Wablas API error (HTTP {$statusCode}): " . $response->body());
         }
     }
 
@@ -287,13 +349,13 @@ class PesanWaService
      */
     protected function truncateError(string $error): string
     {
-        // If error contains HTML (like SaungWA internal errors), extract the meaningful part
+        // If error contains HTML (like Wablas internal errors), extract the meaningful part
         if (str_contains($error, '<!DOCTYPE html>') || str_contains($error, '<html')) {
             // Try to extract the actual exception message
             if (preg_match('/Exception:\s*([^<]+)/i', $error, $matches)) {
-                $error = 'SaungWA Internal Error: ' . trim($matches[1]);
+                $error = 'Wablas Internal Error: ' . trim($matches[1]);
             } else {
-                $error = 'SaungWA Internal Server Error (service unavailable)';
+                $error = 'Wablas Internal Server Error (service unavailable)';
             }
         }
 
