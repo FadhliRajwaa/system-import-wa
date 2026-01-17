@@ -14,6 +14,11 @@ class Index extends Component
     public string $sortDirection = 'asc';
     public string $search = '';
 
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
     public function getInstansiListProperty()
     {
         return Instansi::query()

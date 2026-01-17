@@ -67,7 +67,7 @@ return [
         'disk' => null,        // Example: 'local', 's3'              | Default: 'default'
         'rules' => ['file', 'max:5120'],  // Max 5MB per file (5120 KB)
         'directory' => null,   // Example: 'tmp'                      | Default: 'livewire-tmp'
-        'middleware' => 'throttle:120,1',  // 120 requests per minute for batch uploads
+        'middleware' => null,  // Disabled throttle for batch uploads (max 50 files)
         'preview_mimes' => [   // Supported file types for temporary pre-signed file URLs...
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
